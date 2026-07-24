@@ -1,0 +1,90 @@
+name: Seed And Publish Demo Dashboard
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: "Source reponomics-dashboard-action workflow run ID containing the demo seed artifact"
+        required: true
+        type: string
+      source_repository:
+        description: "Source repository that produced the demo seed artifact"
+        required: true
+        type: string
+        default: reponomics/reponomics-dashboard-action
+
+permissions: {}
+
+concurrency:
+  group: reponomics-demo-seed-publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  seed-and-publish:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Download encrypted demo dashboard data seed
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: generated-demo-dashboard-data
+          path: .dashboard-data-artifact
+          repository: ${{ inputs.source_repository }}
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Validate encrypted demo dashboard data seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .dashboard-data-artifact/dashboard-data.enc
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path(".dashboard-data-artifact/dashboard-data.enc").read_text())
+          required = {"version", "created_at", "kdf", "iterations", "algorithm", "aad", "salt", "iv", "ciphertext"}
+          missing = sorted(required - set(payload))
+          if missing:
+              raise SystemExit(f"encrypted seed is missing keys: {missing}")
+          if (
+              payload["version"] != 2
+              or payload["algorithm"] != "AES-256-GCM"
+              or payload["aad"] != "reponomics:retained-artifact:v2:dashboard-data"
+          ):
+              raise SystemExit("encrypted seed uses an unsupported format")
+          PY
+
+      - name: Store demo dashboard data artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dashboard-data
+          path: .dashboard-data-artifact/dashboard-data.enc
+          if-no-files-found: error
+          retention-days: 90
+          overwrite: true
+
+      - name: Publish demo dashboard
+        uses: ./.github/actions/reponomics
+        env:
+          DEMO_DASHBOARD_KEY: "reponomics-demo-public-key-2026-keep-this-visible-do-not-reuse"
+          REPONOMICS_DEMO_UNLOCK_KEY: "reponomics-demo-public-key-2026-keep-this-visible-do-not-reuse"
+        with:
+          mode: publish
+          artifact-run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+          dashboard-secret: ${{ env.DEMO_DASHBOARD_KEY }}
+          data-mode: encrypted
+          retention-days: "90"
+          publish-pages: "true"
+          generate-readme: "false"

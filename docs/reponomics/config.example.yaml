@@ -1,0 +1,57 @@
+# Reponomics dashboard configuration.
+#
+# New template repositories receive this file once as root config.yaml.
+# The managed copy at docs/reponomics/config.example.yaml may be refreshed by
+# update-docs, but your root config.yaml remains user-owned.
+
+# Required: set to true after reading the setup README.
+i_have_read_the_readme: # true/false
+
+# Required: encrypted or plaintext.
+#
+# encrypted:
+#   - required for public repositories
+#   - required for GitHub Pages dashboards
+#   - uses DASHBOARD_SECRET_DO_NOT_REPLACE
+#
+# plaintext:
+#   - private repositories only
+#   - stores retained CSV files directly in the dashboard-data artifact
+#   - does not publish a Pages dashboard
+data_mode: # encrypted/plaintext
+
+# Required: publish an encrypted HTML dashboard through GitHub Pages.
+# Requires data_mode: encrypted and repository Pages source set to GitHub Actions.
+publish_pages_dashboard: # true/false
+
+# Required: publish markdown/SVG metrics into the repository README.
+# Private repositories only. Output is committed to git history.
+publish_readme_dashboard: # true/false
+
+# GitHub Actions artifact expiry for each uploaded artifact.
+# This is not the dashboard history window.
+# Must be between 14 and 90 days.
+artifact_retention_days: 90
+
+# Use a user-owned GitHub App installation token instead of COLLECTION_TOKEN.
+# Reponomics does not provide a shared collection app.
+use_github_app: false
+
+# 0 disables automatic Doctor diagnostics.
+# 1 through 30 runs Doctor during collect-and-publish when at least that many
+# UTC days have elapsed since the last successful auto-doctor.
+auto_doctor_every_n_days: 0
+
+# Reponomics only collects repositories listed here.
+# Use bare repo names for repositories owned by this dashboard repository's
+# owner. Use owner/repo names for repositories owned elsewhere.
+collect:
+  repositories:
+#   - repo-name
+#   - other-owner/repo-name
+
+# Repositories shown in README and Pages dashboards.
+# Must be a subset of collect.repositories and can contain at most 8 entries.
+publish:
+  repositories:
+#   - repo-name
