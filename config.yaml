@@ -1,0 +1,48 @@
+i_have_read_the_readme: true
+data_mode: encrypted
+publish_pages_dashboard: true
+publish_readme_dashboard: false
+artifact_retention_days: 90
+use_github_app: false
+collect:
+  repositories:
+  - reponomics-demo/demo-app-starter
+  - reponomics-demo/demo-product-dashboard
+  - reponomics-demo/demo-docs
+  - reponomics-demo/demo-examples
+  - reponomics-demo/demo-api
+  - reponomics-demo/demo-sdk-js
+  - reponomics-demo/demo-sdk-python
+  - reponomics-demo/demo-cli
+  - reponomics-demo/demo-website
+  - reponomics-demo/demo-integration-hub
+  - reponomics-demo/demo-deploy-action
+  - reponomics-demo/demo-template-gallery
+  - reponomics-demo/demo-community-plugins
+  - reponomics-demo/demo-config-recipes
+  - reponomics-demo/demo-auth
+  - reponomics-demo/demo-data-exporter
+  - reponomics-demo/demo-issue-triage
+  - reponomics-demo/demo-release-tools
+  - reponomics-demo/demo-status-page
+  - reponomics-demo/demo-design-system
+  - reponomics-demo/demo-tools
+  - reponomics-demo/demo-support-scripts
+  - reponomics-demo/demo-terraform-modules
+  - reponomics-demo/demo-legacy-dashboard
+  - reponomics-demo/demo-research-notebooks
+  - reponomics-demo/demo-playground
+  - reponomics-demo/demo-archive-reader
+  - reponomics-demo/demo-changelog-bot
+  - reponomics-demo/demo-schema-fixtures
+  - reponomics-demo/demo-workflow-sandbox
+publish:
+  repositories:
+  - reponomics-demo/demo-app-starter
+  - reponomics-demo/demo-product-dashboard
+  - reponomics-demo/demo-docs
+  - reponomics-demo/demo-examples
+  - reponomics-demo/demo-api
+  - reponomics-demo/demo-sdk-js
+  - reponomics-demo/demo-sdk-python
+  - reponomics-demo/demo-cli
