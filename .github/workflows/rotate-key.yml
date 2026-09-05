@@ -1,0 +1,61 @@
+name: Rotate Key
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_rotation:
+        description: "I created DASHBOARD_NEXT_SECRET, saved the new key, and did not replace DASHBOARD_SECRET_DO_NOT_REPLACE"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reponomics-retained-state-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rotate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Resolve Reponomics configuration
+        run: python .github/scripts/resolve-reponomics-config.py --require-setup
+
+      - name: Validate rotation request
+        if: env.REPONOMICS_SETUP_COMPLETE == 'true'
+        env:
+          CONFIRM_ROTATION: ${{ inputs.confirm_rotation }}
+        run: |
+          set -euo pipefail
+
+          if [ "$CONFIRM_ROTATION" != "true" ]; then
+            echo "Rotation was not confirmed."
+            exit 1
+          fi
+
+      - name: Rotate dashboard key
+        if: env.REPONOMICS_SETUP_COMPLETE == 'true'
+        uses: ./.github/actions/reponomics
+        with:
+          mode: rotate-key
+          github-token: ${{ github.token }}
+          dashboard-secret: ${{ secrets.DASHBOARD_SECRET_DO_NOT_REPLACE }}
+          dashboard-next-secret: ${{ secrets.DASHBOARD_NEXT_SECRET }}
+          data-mode: ${{ env.DATA_MODE }}
+          retention-days: ${{ env.RETENTION_DAYS }}
+          publish-pages: ${{ env.PUBLISH_PAGES_DASHBOARD }}
+          generate-readme: ${{ env.PUBLISH_README_DASHBOARD }}
