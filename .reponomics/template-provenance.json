@@ -1,0 +1,34 @@
+{
+  "action": {
+    "accepted_release": {
+      "default_ref": "v0",
+      "repository": "reponomics/reponomics-dashboard-action",
+      "sha": "1ccabb613cfd0424fb6442baee639b14c23d51bc",
+      "tag": "v0.33.1",
+      "version": "0.33.1"
+    },
+    "compatible_major": 0,
+    "default_ref": "v0",
+    "repository": "reponomics/reponomics-dashboard-action"
+  },
+  "generated_at": "2026-09-22T22:11:31Z",
+  "payload": {
+    "byte_count": 147007,
+    "digest": "585b5e424f16e1e2353eaa12e0f7a46b3cc38ff63214278b48099d71211ed1e3",
+    "digest_algorithm": "sha256",
+    "excluded_paths": [
+      ".reponomics/template-provenance.json"
+    ],
+    "file_count": 36,
+    "tree_manifest_format": "reponomics-template-tree-v1"
+  },
+  "schema_version": 1,
+  "source": {
+    "commit": "fe892cc50b23a93487c248101382296d2bd4c09e",
+    "repository": "reponomics/reponomics-dashboard-action"
+  },
+  "template": {
+    "minimum_compatible_template_version": "0.16.0",
+    "version": "0.20.1"
+  }
+}
