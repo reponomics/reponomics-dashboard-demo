@@ -1,0 +1,197 @@
+name: Setup
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Resolve setup configuration
+        env:
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: python .github/scripts/resolve-reponomics-config.py
+
+      - name: Validate required secrets
+        env:
+          USE_GITHUB_APP: ${{ env.USE_GITHUB_APP }}
+          COLLECTION_TOKEN: ${{ secrets.COLLECTION_TOKEN }}
+          COLLECTION_APP_ID_VAR: ${{ vars.COLLECTION_APP_ID }}
+          COLLECTION_APP_ID_SECRET: ${{ secrets.COLLECTION_APP_ID }}
+          COLLECTION_APP_PRIVATE_KEY: ${{ secrets.COLLECTION_APP_PRIVATE_KEY }}
+          DASHBOARD_SECRET_DO_NOT_REPLACE: ${{ secrets.DASHBOARD_SECRET_DO_NOT_REPLACE }}
+        run: |
+          set -euo pipefail
+
+          token_url="https://github.com/settings/personal-access-tokens/new?name=COLLECTION_TOKEN&description=Read%20repository%20data%20for%20Reponomics%20Dashboard&target_name=$GITHUB_REPOSITORY_OWNER&expires_in=366&administration=read"
+          app_url="https://github.com/settings/apps/new"
+          key_doc_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/docs/reponomics/dashboard-key-and-recovery.md"
+          collection_app_id="${COLLECTION_APP_ID_VAR:-}"
+          if [ -z "$collection_app_id" ] && [ -n "${COLLECTION_APP_ID_SECRET:-}" ]; then
+            collection_app_id="${COLLECTION_APP_ID_SECRET:-}"
+          fi
+
+          if [ "$USE_GITHUB_APP" = "true" ]; then
+            if [ -z "$collection_app_id" ]; then
+              {
+                echo "## Setup stopped"
+                echo
+                echo "Advanced GitHub App mode is enabled but no app ID is configured."
+                echo "Set repository variable \`COLLECTION_APP_ID\` (or repository secret \`COLLECTION_APP_ID\`)"
+                echo "for your own GitHub App, then run setup again."
+                echo
+                echo "Create an app at [$app_url]($app_url), install it for the repositories"
+                echo "you want to collect, and grant repository \`Administration: read\`."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+            if [ -z "${COLLECTION_APP_PRIVATE_KEY:-}" ]; then
+              {
+                echo "## Setup stopped"
+                echo
+                echo "Advanced GitHub App mode is enabled but \`COLLECTION_APP_PRIVATE_KEY\` is missing."
+                echo "Store your own app private key as repository secret \`COLLECTION_APP_PRIVATE_KEY\`,"
+                echo "then run setup again."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          else
+            if [ -z "${COLLECTION_TOKEN:-}" ]; then
+              {
+                echo "## Setup stopped"
+                echo
+                echo "[Create a fine-grained personal access token]($token_url)"
+                echo "with repository \`Administration: read\` for \`$GITHUB_REPOSITORY_OWNER\`."
+                echo "To minimize exposure, we recommend restricting the token's access to only"
+                echo "repos that are within the your collection set."
+                echo "When you create a new repository, and you wish to run collection on it,"
+                echo "be sure to add it to the token's permission set."
+                echo "Then save the token as repository secret \`COLLECTION_TOKEN\` and run setup again."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1 
+            fi
+
+            if ! GH_TOKEN="$COLLECTION_TOKEN" gh api rate_limit >/dev/null 2>&1; then
+              {
+                echo "## Setup stopped"
+                echo
+                echo "\`COLLECTION_TOKEN\` did not authenticate with the GitHub API."
+                echo "Check the token value and repository permissions, then run setup again."
+                echo
+                echo "If the token expired or has the wrong permissions,"
+                echo "[create a replacement fine-grained personal access token]($token_url)"
+                echo "with repository \`Administration: read\` for the repositories"
+                echo "this dashboard collects."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          fi
+
+          if [ "$DATA_MODE" = "encrypted" ]; then
+            if [ -z "${DASHBOARD_SECRET_DO_NOT_REPLACE:-}" ]; then
+              {
+                echo "## Setup stopped"
+                echo
+                echo "\`data_mode=$DATA_MODE\` needs a repository secret named \`DASHBOARD_SECRET_DO_NOT_REPLACE\`."
+                echo
+                echo "See [Dashboard Key And Recovery]($key_doc_url) for key generation options."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+          fi
+
+      - name: Write setup marker
+        run: |
+          set -euo pipefail
+
+          mkdir -p .reponomics
+          : > .reponomics/setup-complete
+
+      - name: Write setup README
+        run: |
+          set -euo pipefail
+
+          cat > README.md <<'MD'
+          # Reponomics Dashboard
+
+          This repository was generated from the [Reponomics Dashboard template repo](https://github.com/reponomics/reponomics-dashboard).
+
+          The Reponomics Dashboard provides users with a convenient, private, and cost-free way to store and aggregate key metrics about their GitHub repos. Because this data is private, we do not publish any metrics to the README for public repositories.
+
+          Reponomics updates action-managed local documentation under `docs/reponomics/` after successful collect-and-publish runs so local guidance matches the action version this repository runs. If you choose to own that directory yourself, disable or delete `.github/workflows/update-docs.yml` before editing it.
+
+          If you'd like to learn more about the Reponomics Dashboard, file issues, or star the project, visit [reponomics/reponomics-dashboard-action](https://github.com/reponomics/reponomics-dashboard-action). You can also view the demo dashboard repository at [reponomics/reponomics-dashboard-demo](https://github.com/reponomics/reponomics-dashboard-demo).
+
+          Thanks!
+          MD
+
+      - name: Summarize setup
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## Reponomics setup configured"
+            echo
+            echo "- Setup marker: written to \`.reponomics/setup-complete\`"
+            echo "- Collection workflow: active after setup"
+            echo "- Incident reset workflow: active after setup"
+            echo "- Scheduled workflow keepalive: active after setup"
+            echo "- Hosted HTML dashboard generation: \`$PUBLISH_PAGES_DASHBOARD\`"
+            echo "- Data mode: \`$DATA_MODE\`"
+            echo "- Collection auth mode: \`$COLLECTION_AUTH_MODE\`"
+            echo "- README generation: \`$PUBLISH_README_DASHBOARD\`"
+            echo "- Artifact retention: \`$RETENTION_DAYS\` day(s)"
+            echo "- Auto-doctor cadence: \`$AUTO_DOCTOR_EVERY_N_DAYS\` day(s)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo
+            echo "## Scheduled workflow keepalive"
+            echo
+            echo "GitHub documents automatic scheduled-workflow disablement"
+            echo "after 60 days without repository activity for inactive public repositories,"
+            echo "but inactive scheduled workflows"
+            echo "are an operational risk for any dashboard repository. Reponomics"
+            echo "enables a monthly keepalive workflow that updates"
+            echo "\`.reponomics/keepalive.md\` and tries to create a persistent"
+            echo "data safety reminder issue. This is a best-effort safeguard;"
+            echo "if scheduled workflows stop unexpectedly, download the latest"
+            echo "\`dashboard-data\` artifact before it expires, then re-enable"
+            echo "the workflows from the Actions tab."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$PUBLISH_PAGES_DASHBOARD" = "true" ] && [ "$DATA_MODE" = "encrypted" ]; then
+            {
+              echo
+              echo "## Manual GitHub Pages step"
+              echo
+              echo "To host the encrypted dashboard, open this repository's"
+              echo "**Settings -> Pages** page and set **Build and deployment -> Source**"
+              echo "to **GitHub Actions**. Do not grant Pages or Administration write"
+              echo "permissions to \`COLLECTION_TOKEN\` for this setup step."
+              echo
+              echo "If GitHub suggests Pages workflow templates, skip them."
+              echo "The Reponomics publish workflow already uploads and deploys"
+              echo "the Pages artifact, and verifies this existing Pages setting"
+              echo "during deployment."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Commit setup changes
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md .reponomics/setup-complete
+          git diff --cached --quiet || git commit -m "chore: set up Reponomics dashboard [skip ci]"
+          git push
