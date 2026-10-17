@@ -1,0 +1,32 @@
+{
+  "as_of": "2026-10-17",
+  "dataset_revision": "2026-06-demo-v1",
+  "demo_repository": "reponomics/reponomics-dashboard-demo",
+  "generated_at": "2026-10-17T12:17:10Z",
+  "payload_digest": {
+    "algorithm": "sha256",
+    "byte_count": 217493,
+    "digest": "2ab8605dfbf451edd778999f062fb2b076ae5a8d5752f448d3038348562089ea",
+    "excluded_paths": [
+      ".reponomics/demo-provenance.json"
+    ],
+    "file_count": 50,
+    "format": "reponomics-template-tree-v1"
+  },
+  "public_demo_key_sha256": "a2df31d2c41bfd3224291957c0bbf1d2e0bf1bc7d32e5617cac126363cbcf70d",
+  "retained_data_seed": {
+    "aad": "reponomics:retained-artifact:v2:dashboard-data",
+    "byte_count": 163430,
+    "format": "reponomics-encrypted-dashboard-data-v2",
+    "path": "dashboard-data.enc",
+    "sha256": "26fb82a475e1a882995916f56a75298a711e8e6423b6e47d54e6ae3ef88b9a79",
+    "source_artifact_name": "generated-demo-dashboard-data",
+    "target_artifact_name": "dashboard-data",
+    "version": 2
+  },
+  "schema_version": 1,
+  "source_commit": "fe892cc50b23a93487c248101382296d2bd4c09e",
+  "source_repository": "https://github.com/reponomics/reponomics-dashboard-action",
+  "synthetic_data": true,
+  "template_version": "0.20.1"
+}
